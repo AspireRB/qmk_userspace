@@ -16,6 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include QMK_KEYBOARD_H
 
+#include "rgb_matrix_map.h"
+
 // clang-format off
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
@@ -66,7 +68,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         EE_CLR,   KC_MYCM, KC_CALC, KC_BRID, KC_BRIU, KC_MPRV, KC_MNXT, KC_MPLY, KC_MSTP, KC_VOLD, KC_VOLU, KC_MUTE, KC_INS, KC_PSCR,           KC_SLEP,
         _______,  _______, _______, _______, _______, _______ ,_______, _______, _______, _______, _______, _______, _______, _______,          _______,
         _______,  RGB_SAD, RGB_VAI, RGB_SAI, NK_TOGG, _______, _______, _______, _______, _______, _______, _______, _______, QK_BOOT,          _______,
-        KC_CAPS,  RGB_HUD, RGB_VAD, RGB_HUI, _______, _______, _______, _______, _______, _______, _______, _______,          _______,          _______,
+        KC_SCRL,  RGB_HUD, RGB_VAD, RGB_HUI, _______, _______, _______, _______, _______, _______, _______, _______,          _______,          _______,
         _______,          _______, _______, _______, _______, QK_BOOT, KC_NUM,  _______, _______, _______,  _______,          _______, RGB_MOD, _______,
         _______, GU_TOGG, _______,                            _______,                            _______, _______, _______, RGB_SPD, RGB_RMOD, RGB_SPI
     ),
@@ -93,7 +95,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,          _______,
         _______, KC_NO,  KC_PGUP,  KC_UP,   KC_PGDN, KC_NO,   KC_NO,   KC_P7,   KC_P8,   KC_P9,   KC_PPLS, KC_PSLS, KC_PCMM, KC_PEQL,          KC_WH_U,
         _______, KC_NO,  KC_LEFT,  KC_DOWN, KC_RGHT, KC_NO,   KC_NO,   KC_P4,   KC_P5,   KC_P6,   KC_PAST, KC_PMNS,          KC_PENT,          KC_WH_D,
-        _______,          KC_NUM,   _______, _______, _______, _______, KC_P0,   KC_P1,   KC_P2,   KC_P3, KC_DOT,          KC_BTN1, KC_MS_U, KC_BTN2,
+        _______,         KC_NUM,   _______, _______, _______, _______, KC_P0,   KC_P1,   KC_P2,   KC_P3,   KC_PDOT,          KC_BTN1, KC_MS_U, KC_BTN2,
         _______, _______, _______,                            KC_PENT,                            _______, _______, KC_BTN3, KC_MS_L, KC_MS_D, KC_MS_R
     ),
 
@@ -106,3 +108,163 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
     [1] = { ENCODER_CCW_CW(KC_TRNS, KC_TRNS) }
 };
 #endif
+
+// Capslock, Scroll lock and Numlock indicator on Left side lights.
+bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
+    //if (get_rgb_nightmode()) rgb_matrix_set_color_all(RGB_OFF);
+
+    led_t led_state = host_keyboard_led_state();
+
+    // Scroll Lock RGB setup
+    if (led_state.scroll_lock) {
+        rgb_matrix_set_color(LED_L3, RGB_RED);
+        rgb_matrix_set_color(LED_L4, RGB_RED);
+        rgb_matrix_set_color(LED_TAB, RGB_RED);
+        rgb_matrix_set_color(LED_F12, RGB_RED);
+    }
+
+/*
+    // System NumLock warning indicator RGB setup
+    #ifdef INVERT_NUMLOCK_INDICATOR
+    if (!led_state.num_lock) { // on if NUM lock is OFF to bring attention to overlay numpad not functional when enabled
+        rgb_matrix_set_color(LED_GRV, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_L1, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_L2, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_N, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_FN, RGB_ORANGE2);
+    }
+    #else
+    if (led_state.num_lock) { // Normal, on if NUM lock is ON
+        rgb_matrix_set_color(LED_GRV, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_L1, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_L2, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_N, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_FN, RGB_ORANGE2);
+    }
+    #endif // INVERT_NUMLOCK_INDICATOR
+*/
+
+    // CapsLock RGB setup
+    if (led_state.caps_lock) {        
+        for (uint8_t i = 0; i < ARRAY_SIZE(LED_LIST_LETTERS); i++) {
+            rgb_matrix_set_color(LED_LIST_LETTERS[i], RGB_CHARTREUSE);
+        }
+        rgb_matrix_set_color(LED_L5, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_L6, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_L7, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_L8, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_CAPS, RGB_CHARTREUSE);
+    }
+
+    // Winkey disabled (gaming) mode RGB setup
+    /*if (keymap_config.no_gui) {
+        rgb_matrix_set_color(LED_LWIN, RGB_RED); //light up Winkey red when disabled
+        rgb_matrix_set_color(LED_W, RGB_CHARTREUSE); //light up gaming keys with WSAD higlighted
+        rgb_matrix_set_color(LED_S, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_A, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_D, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_Q, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_E, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_R, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_TAB, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_F, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_Z, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_X, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_C, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_V, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_SPC, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_LCTL, RGB_ORANGE2);
+        rgb_matrix_set_color(LED_LSFT, RGB_ORANGE2);
+    }*/
+
+    // Fn selector mode RGB setup
+    switch (get_highest_layer(layer_state)) { // special handling per layer
+    case 1: // on Fn layer select what the encoder does when pressed
+        rgb_matrix_set_color(LED_FN, RGB_RED); //FN key
+
+        //NEW RGB LIGHTING TO RING KEYBOARD ON FN LAYER ACTIVATION:
+        for (uint8_t j = 0; j < ARRAY_SIZE(LED_LIST_FUNCROW); j++) {
+            rgb_matrix_set_color(LED_LIST_FUNCROW[j], RGB_RED);
+        }
+        rgb_matrix_set_color(LED_LCTL, RGB_RED);
+        rgb_matrix_set_color(LED_LALT, RGB_RED);
+        rgb_matrix_set_color(LED_SPC, RGB_RED);
+        rgb_matrix_set_color(LED_LWIN, RGB_RED);
+        //rgb_matrix_set_color(LED_RALT, RGB_RED);
+        rgb_matrix_set_color(LED_FN, RGB_OFFBLUE);
+        //rgb_matrix_set_color(LED_RCTL, RGB_RED);
+        rgb_matrix_set_color(LED_BSLS, RGB_RED);
+        rgb_matrix_set_color(LED_L1, RGB_RED);
+        rgb_matrix_set_color(LED_L2, RGB_RED);
+        rgb_matrix_set_color(LED_L3, RGB_RED);
+        rgb_matrix_set_color(LED_L4, RGB_RED);
+        rgb_matrix_set_color(LED_L5, RGB_RED);
+        rgb_matrix_set_color(LED_L6, RGB_RED);
+        rgb_matrix_set_color(LED_L7, RGB_RED);
+        rgb_matrix_set_color(LED_L8, RGB_RED);
+        rgb_matrix_set_color(LED_DOWN, RGB_RED);
+        rgb_matrix_set_color(LED_LEFT, RGB_RED);
+        rgb_matrix_set_color(LED_RIGHT, RGB_RED);
+        rgb_matrix_set_color(LED_R1, RGB_RED);
+        rgb_matrix_set_color(LED_R2, RGB_RED);
+        rgb_matrix_set_color(LED_R3, RGB_RED);
+        rgb_matrix_set_color(LED_R4, RGB_RED);
+        rgb_matrix_set_color(LED_R5, RGB_RED);
+        rgb_matrix_set_color(LED_R6, RGB_RED);
+        rgb_matrix_set_color(LED_R7, RGB_RED);
+        rgb_matrix_set_color(LED_R8, RGB_RED);
+
+        // System NumLock warning indicator RGB setup
+        #ifdef INVERT_NUMLOCK_INDICATOR
+        if (!led_state.num_lock) { // on if NUM lock is OFF to bring attention to overlay numpad not functional when enabled
+            rgb_matrix_set_color(LED_N, RGB_ORANGE2);
+        }
+        #else
+        if (led_state.num_lock) { // Normal, on if NUM lock is ON
+            rgb_matrix_set_color(LED_N, RGB_ORANGE2);
+        }
+        #endif // INVERT_NUMLOCK_INDICATOR
+
+        // Add RGB Timeout Indicator -- shows 0 to 139 using F row and num row; larger numbers using 16bit code
+        /*uint16_t timeout_threshold = get_timeout_threshold();
+        if (timeout_threshold <= 10) rgb_matrix_set_color(LED_LIST_FUNCROW[timeout_threshold], RGB_BLUE);
+        else if (timeout_threshold < 140) {
+            rgb_matrix_set_color(LED_LIST_FUNCROW[(timeout_threshold / 10)], RGB_CYAN);
+            rgb_matrix_set_color(LED_LIST_FUNCROW[(timeout_threshold % 10)], RGB_BLUE);
+        } else { // >= 140 minutes, just show these 3 lights
+            rgb_matrix_set_color(LED_LIST_FUNCROW[10], RGB_CYAN);
+            rgb_matrix_set_color(LED_LIST_FUNCROW[11], RGB_CYAN);
+            rgb_matrix_set_color(LED_LIST_FUNCROW[12], RGB_CYAN);
+        }*/
+        break;
+
+        // Numpad & Mouse Keys overlay RGB
+    case 2:
+        #ifdef INVERT_NUMLOCK_INDICATOR
+        if (!led_state.num_lock) { // on if NUM lock is OFF to bring attention to overlay numpad not functional when enabled
+            rgb_matrix_set_color(LED_Z, RGB_ORANGE2);
+        }
+        #else
+        if (led_state.num_lock) { // Normal, on if NUM lock is ON
+            rgb_matrix_set_color(LED_Z, RGB_ORANGE2);
+        }
+        #endif // INVERT_NUMLOCK_INDICATOR
+        for (uint8_t i = 0; i < ARRAY_SIZE(LED_LIST_NUMPAD); i++) {
+            rgb_matrix_set_color(LED_LIST_NUMPAD[i], RGB_OFFBLUE);
+        }
+        rgb_matrix_set_color(LED_L5, RGB_OFFBLUE);
+        rgb_matrix_set_color(LED_L6, RGB_OFFBLUE);
+        rgb_matrix_set_color(LED_CAPS, RGB_OFFBLUE);
+        rgb_matrix_set_color(LED_UP, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_DOWN, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_LEFT, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_RIGHT, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_RCTL, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_RSFT, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_END, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_PGUP, RGB_CHARTREUSE);
+        rgb_matrix_set_color(LED_PGDN, RGB_CHARTREUSE);
+        break;
+    }
+    return false;
+}
