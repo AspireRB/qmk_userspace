@@ -100,14 +100,51 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
 };
-// clang-format on
-
 #if defined(ENCODER_MAP_ENABLE)
 const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
     [0] = { ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
     [1] = { ENCODER_CCW_CW(KC_TRNS, KC_TRNS) }
 };
 #endif
+
+/*#if defined(ENCODER_ENABLE) && !defined(ENCODER_DEFAULTACTIONS_ENABLE) // Encoder Functionality when not using userspace defaults
+void encoder_action_rgbhue(bool clockwise) {
+    if (clockwise)
+        rgblight_increase_hue_noeeprom();
+    else
+        rgblight_decrease_hue_noeeprom();
+}
+
+bool encoder_update_user(uint8_t index, bool clockwise) {
+    uint8_t mods_state = get_mods();
+    if (mods_state & MOD_BIT(KC_LSFT)) { // If you are holding L shift, encoder changes layers
+        encoder_action_layerchange(clockwise);
+    } else if (mods_state & MOD_BIT(KC_RSFT)) { // If you are holding R shift, Page up/dn
+        unregister_mods(MOD_BIT(KC_RSFT));
+        encoder_action_navpage(clockwise);
+        register_mods(MOD_BIT(KC_RSFT));
+    } else if (mods_state & MOD_BIT(KC_LCTL)) { // if holding Left Ctrl, navigate next/prev word
+        encoder_action_navword(clockwise);
+    } else if (mods_state & MOD_BIT(KC_RCTL)) { // if holding Right Ctrl, change rgb hue/colour
+        encoder_action_rgbhue(clockwise);
+    } else if (mods_state & MOD_BIT(KC_LALT)) { // if holding Left Alt, change media next/prev track
+        encoder_action_mediatrack(clockwise);
+    } else {
+        switch (get_highest_layer(layer_state)) {
+        case 1:
+            #ifdef IDLE_TIMEOUT_ENABLE
+            timeout_update_threshold(clockwise);
+            #endif
+            break;              
+        default:
+            encoder_action_volume(clockwise); // Otherwise it just changes volume
+            break;
+        }
+    }
+    //return true; //set to return false to counteract enabled encoder in pro.c
+    return false;
+}
+#endif // ENCODER_ENABLE && !ENCODER_DEFAULTACTIONS_ENABLE*/
 
 // Capslock, Scroll lock and Numlock indicator on Left side lights.
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
