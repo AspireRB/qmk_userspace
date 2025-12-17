@@ -15,12 +15,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include QMK_KEYBOARD_H
-
 #include "rgb_matrix_map.h"
+#include "midi.h"
 
 #define KC_DICT LCTL(LALT(LGUI(KC_D)))
 #define KC_PRNT LGUI(LSFT(KC_4))
 #define KC_DND LCTL(LALT(LGUI(KC_N)))
+
+enum layers { _BASE = 0, _FN = 1, _NUMPAD = 2, _MIDI = 3 };
+
+enum custom_keycodes {
+    MIDI_CC_CUTOFF = SAFE_RANGE,
+    MIDI_CC_RESO,
+    MIDI_CC_ATTACK,
+    MIDI_CC_RELEASE,
+
+    // Drums
+    MIDI_KICK,
+    MIDI_SNARE,
+    MIDI_CLAP,
+    MIDI_HH_C,
+    MIDI_HH_O,
+    MIDI_TOM,
+    MIDI_CRASH
+};
+
+extern MidiDevice midi_device;
+int8_t            midi_octave = 0;
 
 // clang-format off
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -74,7 +95,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______,  RM_SATD, RM_VALU, RM_SATU, NK_TOGG, _______, _______, _______, _______, _______, _______, _______, _______, QK_BOOT,          _______,
         _______,  RM_HUED, RM_VALD, RM_HUEU, RM_TOGG, _______, _______, _______, _______, _______, _______, _______,          _______,          _______,
         _______,           _______, _______, _______, _______, QK_BOOT, _______, _______, _______, _______, _______,          _______, RM_NEXT, _______,
-        _______,  GU_TOGG, _______,                            _______,                            _______, _______, _______, RM_SPDD, RM_PREV, RM_SPDU
+        _______,  GU_TOGG, _______,                            _______,                            MO(3),   MI_TOGG, _______, RM_SPDD, RM_PREV, RM_SPDU
     ),
 
     /* _NUMPADMOUSE Layout
@@ -103,11 +124,23 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______, _______, _______,                            KC_PENT,                            MS_WHLL, MS_WHLR, MS_BTN3, MS_LEFT, MS_DOWN, MS_RGHT
     ),
 
+    [3] = LAYOUT(
+        _______, MI_OCTD, MI_OCTU, _______,    MIDI_CC_CUTOFF, MIDI_CC_RESO, MIDI_CC_ATTACK, MIDI_CC_RELEASE, _______,    _______, _______, _______, _______, _______,          _______,
+        _______, MI_C,    MI_Cs,   MI_D,       MI_Ds,         MI_E,         MI_F,           MI_Fs,           MI_G,       MI_Gs,   MI_A,    MI_As,   MI_B,    MI_C1,           _______,
+        _______, _______, _______, _______,    _______,        _______,      _______,        _______,         _______,    _______, _______, _______, _______, _______,          _______,
+        _______, MI_C,    MI_D,    MI_E,       MI_F,           MI_G,         MI_A,           MI_B,            MI_C1,      _______, _______, _______,          _______,          _______,
+        _______, MIDI_KICK, MIDI_SNARE, MIDI_CLAP, MIDI_HH_C, MIDI_HH_O, MIDI_TOM, MIDI_CRASH, _______, _______, _______,          _______, _______, _______,
+        _______, _______, _______,                                               _______,                                              _______, _______, _______, _______, _______, _______
+    ),
+
 };
+
 #if defined(ENCODER_MAP_ENABLE)
 const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
     [0] = { ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
-    [2] = { ENCODER_CCW_CW(KC_MRWD, KC_MFFD) }
+    [1] = { ENCODER_CCW_CW(KC_NO, KC_NO) },      // FN layer
+    [2] = { ENCODER_CCW_CW(KC_MRWD, KC_MFFD) },
+    [3] = { ENCODER_CCW_CW(KC_NO, KC_NO) }       // MIDI layer
 };
 #endif
 
@@ -310,4 +343,72 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
         break;
     }
     return false;
+}
+
+bool encoder_update_user(uint8_t index, bool clockwise) {
+    if (get_highest_layer(layer_state) == 2) {
+        uint8_t value = clockwise ? 127 : 0;
+        midi_send_cc(&midi_device, 0, 74, value);
+        return false; // bloquea encoder_map en capa MIDI
+    }
+    return true; // deja encoder_map en capas normales
+}
+
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+
+    /* ---------- NOTE OFF (soltar tecla) ---------- */
+    if (!record->event.pressed) {
+        switch (keycode) {
+            case MIDI_KICK:   midi_send_noteoff(&midi_device, 9, 36, 0); return false;
+            case MIDI_SNARE:  midi_send_noteoff(&midi_device, 9, 38, 0); return false;
+            case MIDI_CLAP:   midi_send_noteoff(&midi_device, 9, 39, 0); return false;
+            case MIDI_HH_C:   midi_send_noteoff(&midi_device, 9, 42, 0); return false;
+            case MIDI_HH_O:   midi_send_noteoff(&midi_device, 9, 46, 0); return false;
+            case MIDI_TOM:    midi_send_noteoff(&midi_device, 9, 45, 0); return false;
+            case MIDI_CRASH:  midi_send_noteoff(&midi_device, 9, 49, 0); return false;
+        }
+        return true;
+    }
+
+    /* ---------- NOTE ON / CC ---------- */
+    switch (keycode) {
+
+        /* OCTAVAS */
+        case MI_OCTU:
+            if (midi_octave < 3) midi_octave++;
+            return false;
+
+        case MI_OCTD:
+            if (midi_octave > -3) midi_octave--;
+            return false;
+
+        /* CC */
+        case MIDI_CC_CUTOFF:
+            midi_send_cc(&midi_device, midi_config.channel, 74, 100);
+            return false;
+
+        case MIDI_CC_RESO:
+            midi_send_cc(&midi_device, midi_config.channel, 71, 100);
+            return false;
+
+        case MIDI_CC_ATTACK:
+            midi_send_cc(&midi_device, midi_config.channel, 73, 80);
+            return false;
+
+        case MIDI_CC_RELEASE:
+            midi_send_cc(&midi_device, midi_config.channel, 72, 80);
+            return false;
+
+        /* DRUMS */
+        case MIDI_KICK:   midi_send_noteon(&midi_device, 9, 36, 127); return false;
+        case MIDI_SNARE:  midi_send_noteon(&midi_device, 9, 38, 127); return false;
+        case MIDI_CLAP:   midi_send_noteon(&midi_device, 9, 39, 127); return false;
+        case MIDI_HH_C:   midi_send_noteon(&midi_device, 9, 42, 110); return false;
+        case MIDI_HH_O:   midi_send_noteon(&midi_device, 9, 46, 110); return false;
+        case MIDI_TOM:    midi_send_noteon(&midi_device, 9, 45, 120); return false;
+        case MIDI_CRASH:  midi_send_noteon(&midi_device, 9, 49, 127); return false;
+    }
+
+    return true;
 }
