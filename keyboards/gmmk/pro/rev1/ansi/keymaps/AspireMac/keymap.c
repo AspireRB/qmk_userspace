@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define KC_DICT LCTL(LALT(LGUI(KC_D)))
 #define KC_PRNT LGUI(LSFT(KC_4))
 #define KC_DND LCTL(LALT(LGUI(KC_N)))
+#define KC_INPT LCTL(KC_SPC)
 
 enum layers { _BASE = 0, _FN = 1, _NUMPAD = 2, _MIDI = 3 };
 
@@ -42,6 +43,10 @@ enum custom_keycodes {
 
 extern MidiDevice midi_device;
 int8_t            midi_octave = 0;
+
+enum {
+    TD_CTRL_SPC_LAYER1 = 0,
+};
 
 // clang-format off
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -69,7 +74,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_LBRC, KC_RBRC, KC_BSLS,          KC_END,
         LT(2,KC_CAPS), KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,    KC_ENT,           KC_PGUP,
         KC_LSFT,          KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH,          KC_RSFT, KC_UP,   KC_PGDN,
-        KC_LCTL, KC_LOPT, KC_LCMD,                            KC_SPC,                             KC_RCMD, KC_ROPT, MO(1),   KC_LEFT, KC_DOWN, KC_RGHT
+        KC_LCTL, KC_LOPT, KC_LCMD,                            KC_SPC,                             KC_RCMD, KC_ROPT,TD(TD_CTRL_SPC_LAYER1),KC_LEFT, KC_DOWN, KC_RGHT
     ),
 
     /* FN1 Layout
@@ -95,7 +100,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______,  RM_SATD, RM_VALU, RM_SATU, NK_TOGG, _______, _______, _______, _______, _______, _______, _______, _______, QK_BOOT,          _______,
         _______,  RM_HUED, RM_VALD, RM_HUEU, RM_TOGG, _______, _______, _______, _______, _______, _______, _______,          _______,          _______,
         _______,           _______, _______, _______, _______, QK_BOOT, _______, _______, _______, _______, _______,          _______, RM_NEXT, _______,
-        _______,  GU_TOGG, _______,                            _______,                            MO(3),   MI_TOGG, _______, RM_SPDD, RM_PREV, RM_SPDU
+        LCTL(KC_SPC),  GU_TOGG, _______,                            _______,                            MO(3),   MI_TOGG, _______, RM_SPDD, RM_PREV, RM_SPDU
     ),
 
     /* _NUMPADMOUSE Layout
@@ -121,7 +126,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______, KC_NO,  KC_PGUP,  KC_UP,   KC_PGDN, KC_NO,   KC_NO,   KC_P7,   KC_P8,   KC_P9,   KC_PPLS, KC_PSLS, KC_PCMM, KC_PEQL,          MS_WHLU,
         _______, KC_NO,  KC_LEFT,  KC_DOWN, KC_RGHT, KC_NO,   KC_NO,   KC_P4,   KC_P5,   KC_P6,   KC_PAST, KC_PMNS,          KC_PENT,          MS_WHLD,
         _______,         _______,  _______, _______, _______, _______, KC_P0,   KC_P1,   KC_P2,   KC_P3,   KC_PDOT,          MS_BTN1, MS_UP,   MS_BTN2,
-        _______, _______, _______,                            KC_PENT,                            MS_WHLL, MS_WHLR, MS_BTN3, MS_LEFT, MS_DOWN, MS_RGHT
+        _______, _______, MO(1),                            KC_PENT,                            MS_WHLL, MS_WHLR, MS_BTN3, MS_LEFT, MS_DOWN, MS_RGHT
     ),
 
     [3] = LAYOUT(
@@ -133,6 +138,35 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______, _______, _______,                                               _______,                                              _______, _______, _______, _______, _______, _______
     ),
 
+};
+
+// Variable global
+bool td_ctrl_spc_held = false;
+
+// Se ejecuta cuando termina la acción de Tap Dance
+void dance_ctrl_spc_layer1_finished(tap_dance_state_t *state, void *user_data) {
+    if (state->count == 1 && !state->pressed) {
+        // Solo un tap
+        register_code(KC_LCTL);
+        tap_code(KC_SPC);
+        unregister_code(KC_LCTL);
+    } else if (state->pressed) {
+        // Si está presionada, consideramos hold
+        td_ctrl_spc_held = true;
+        layer_on(1); // Activar capa 1
+    }
+}
+
+// Se ejecuta al resetear la acción de Tap Dance
+void dance_ctrl_spc_layer1_reset(tap_dance_state_t *state, void *user_data) {
+    if (td_ctrl_spc_held) {
+        layer_off(1);   // Desactiva capa 1 al soltar
+        td_ctrl_spc_held = false;
+    }
+}
+
+tap_dance_action_t tap_dance_actions[] = {
+    [TD_CTRL_SPC_LAYER1] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, dance_ctrl_spc_layer1_finished, dance_ctrl_spc_layer1_reset)
 };
 
 #if defined(ENCODER_MAP_ENABLE)
